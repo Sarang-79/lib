@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Library Desk</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="page">
+    <h1>Library Management</h1>
+    <p>Add books, lend them to readers, and record returns.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="notices" role="status">
+          {% for category, message in messages %}
+            <p class="notice notice-{{ category }}">{{ message }}</p>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <p class="stats">Titles: {{ stats.titles }} &nbsp;|&nbsp; Copies: {{ stats.copies }} &nbsp;|&nbsp; Borrowed: {{ stats.checked_out }}</p>
+
+    <section>
+      <h2>Add a book</h2>
+      <form class="add-form" method="post" action="{{ url_for('add_book') }}">
+        <label for="title">Book title</label><input id="title" name="title" required>
+        <label for="author">Author</label><input id="author" name="author" required>
+        <label for="isbn">ISBN</label><input id="isbn" name="isbn" required>
+        <label for="copies">Number of copies</label><input id="copies" name="copies" type="number" min="1" value="1" required>
+        <button type="submit">Add book</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>Book catalog</h2>
+      <form class="search" method="get" action="{{ url_for('index') }}">
+        <label for="search">Search:</label>
+        <input id="search" name="q" value="{{ query }}" placeholder="Title, author, or ISBN">
+        <button type="submit">Search</button>
+      </form>
+      {% if books %}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Title</th><th>Author</th><th>ISBN</th><th>Available</th><th>Check out</th></tr></thead>
+            <tbody>
+            {% for book in books %}
+              <tr>
+                <td>{{ book.title }}</td>
+                <td>{{ book.author }}</td>
+                <td>{{ book.isbn }}</td>
+                <td>{{ book.available_copies }} / {{ book.total_copies }}</td>
+                <td>
+                  {% if book.available_copies > 0 %}
+                    <form class="checkout-form" method="post" action="{{ url_for('checkout_book', book_id=book.id) }}">
+                      <label class="sr-only" for="borrower-{{ book.id }}">Borrower name</label>
+                      <input id="borrower-{{ book.id }}" name="borrower" placeholder="Reader name" required>
+                      <button type="submit">Lend</button>
+                    </form>
+                  {% else %}None available{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p>{% if query %}No books match that search.{% else %}No books yet. Add one using the form above.{% endif %}</p>
+      {% endif %}
+    </section>
+
+    <section>
+      <h2>Active loans ({{ loans|length }})</h2>
+      {% if loans %}
+        <ul class="loan-list">
+          {% for loan in loans %}
+            <li>{{ loan.title }} — {{ loan.borrower }}
+              <form method="post" action="{{ url_for('return_book', loan_id=loan.id) }}"><button type="submit">Return</button></form>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}<p>No books are currently checked out.</p>{% endif %}
+    </section>
+
+    <section class="jenkins-help">
+      <h2>Open Jenkins</h2>
+      <p>Jenkins runs separately from this library app. Start the Jenkins service, then open
+        <a href="http://localhost:8080" target="_blank" rel="noopener">Jenkins at http://localhost:8080</a>
+        on the computer where it is installed.</p>
+      <p>In Jenkins, select <strong>New Item</strong>, choose <strong>Pipeline</strong>, then under
+        <strong>Pipeline script from SCM</strong> enter your GitHub repository and set the script path to
+        <code>Jenkinsfile</code>. Save, then select <strong>Build Now</strong> for a manual run.
+        Scheduled builds and GitHub polling are configured in the Jenkinsfile.</p>
+      <p>If Jenkins is not installed yet, see the setup steps in the project README.</p>
+    </section>
+  </main>
+</body>
+</html>
